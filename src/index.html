@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anilibrix</title>
+  </head>
+  <body>
+    <div id="app-shell">
+      <main id="catalog">
+        <div class="container">
+          <header class="catalog-header">
+            <div class="title-group">
+              <h1>Релизы</h1>
+              <span class="count-badge">Последние обновления</span>
+            </div>
+            <div class="header-line"></div>
+          </header>
+          <div id="anime-list" class="release-grid"></div>
+        </div>
+      </main>
+      <div id="anime-details" style="display: none; padding: 20px">
+        <div id="details-content"></div>
+      </div>
+    </div>
+
+    <div id="video-overlay" class="player-fullscreen" style="display: none">
+      <div id="player-hud" class="player-hud">
+        <button class="close-btn" id="close-player">✕ Закрыть</button>
+        <span id="player-title"></span>
+      </div>
+      <div class="video-container">
+        <video id="video-player" class="video-js vjs-default-skin"></video>
+      </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

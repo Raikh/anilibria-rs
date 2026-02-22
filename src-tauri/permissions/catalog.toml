@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "allow-get-catalog"
+description = "Разрешает вызывать команду получения списка аниме"
+commands.allow = ["get_catalog"]
+
+[[permission]]
+identifier = "allow-get-anime-details"
+description = "Разрешает вызывать команду получения подробной информации о сериях"
+commands.allow = ["get_anime_details"]
+
+[[permission]]
+identifier = "allow-full-release"
+description = "Разрешает вызывать команду получения подробной информации о релизе"
+commands.allow = ["get_full_release"]
