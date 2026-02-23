@@ -1,9 +1,10 @@
 [package]
 name = "anilibria-rs"
 version = "0.1.0"
-description = "AniLibrix Rust Client"
-authors = ["you"]
-edition = "2021"
+description = "AniLibria Rust Client"
+authors = ["Raikh"]
+edition = "2024"
+repository = "https://github.com/Raikh/anilibria-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -22,13 +23,10 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# Наш сетевой клиент (как axios, только на Rust)
 reqwest = { version = "0.11", features = ["json"] }
-# Позволяет Rust выполнять задачи асинхронно
 tokio = { version = "1", features = ["full"] }
 tauri-plugin-window-state = "2.4.1"
 
 [features]
-# Оставляем стандартные фичи Tauri
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
