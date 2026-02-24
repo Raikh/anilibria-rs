@@ -279,6 +279,7 @@ async function showDetails(id) {
   const details = document.getElementById("anime-details");
   const content = document.getElementById("details-content");
 
+  // Скрываем другие экраны
   document.getElementById("catalog").style.display = "none";
   document.getElementById("catalog-screen").style.display = "none";
   details.style.display = "block";
@@ -288,44 +289,140 @@ async function showDetails(id) {
 
   try {
     const release = await invoke("get_full_release", { id: String(id) });
+
+    // Формируем HTML
     content.innerHTML = `
-      <button id="back-to-prev" class="back-btn">← Назад</button>
-      <div class="details-layout">
-          <div class="details-sidebar">
-              <img src="https://anilibria.top${release.poster.src}">
-          </div>
-          <div class="details-main">
-              <h1>${release.name.main}</h1>
-              <p class="description">${release.description}</p>
-              <div class="ep-list">
-                  ${release.episodes
-                    .map(
-                      (e) => `
-                      <button class="ep-btn" data-uuid="${e.id}" data-ord="${e.ordinal}">
-                          Серия ${e.ordinal}
-                      </button>
-                  `,
-                    )
-                    .join("")}
+      <div class="details-page-container">
+        <div class="release-hero">
+          <div class="hero-backdrop" style="background-image: url('https://anilibria.top${release.poster.src}')"></div>
+          <div class="hero-overlay"></div>
+          <div class="hero-content-wrapper">
+            <button id="back-to-prev-new" class="back-pill">← Назад</button>
+            <div class="release-main-info">
+              <img src="https://anilibria.top${release.poster.src}" class="release-poster-large">
+              <div class="release-text-block">
+                <h1>${release.name.main}</h1>
+                <div class="info-grid">
+                  <div class="info-item"><span>Тип:</span> ${release.type?.full_string || "ТВ"}</div>
+                  <div class="info-item"><span>Год:</span> ${release.year || "—"}</div>
+                  <div class="info-item"><span>Жанры:</span> ${release.genres?.map((g) => g.name).join(", ") || "—"}</div>
+                </div>
+                <div class="action-bar">
+                  <button class="play-btn-large" id="start-watch-main">Смотреть первую серию</button>
+                </div>
               </div>
+            </div>
           </div>
+        </div>
+
+        <div class="release-info-section">
+          <div class="description-block">
+            <h3>Описание</h3>
+            <p class="description-text">${release.description || "Нет описания"}</p>
+          </div>
+
+          <div class="tabs-wrapper">
+            <div class="details-tabs">
+              <button class="tab-btn active" data-tab="episodes">Эпизоды</button>
+              <button id="tab-related-btn" class="tab-btn" data-tab="related">Связанное</button>
+            </div>
+            <div id="tab-content-container"></div>
+          </div>
+        </div>
       </div>
     `;
 
-    document.getElementById("back-to-prev").onclick = () => {
-      details.style.display = "none";
-      document.getElementById(lastActiveScreen).style.display = "block";
+    // --- ВНУТРЕННИЕ ФУНКЦИИ РЕНДЕРИНГА ---
+    const tabContainer = document.getElementById("tab-content-container");
+
+    const renderEpisodes = () => {
+      tabContainer.innerHTML = `
+        <div class="ep-list-modern">
+          ${release.episodes
+            .map(
+              (e) => `
+            <div class="ep-card-modern" data-uuid="${e.id}" data-ord="${e.ordinal}">
+              <span>${e.ordinal} эпизод</span>
+              <span class="ep-play-label">СМОТРЕТЬ</span>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      `;
+      tabContainer.querySelectorAll(".ep-card-modern").forEach((card) => {
+        card.onclick = () =>
+          openPlayer(
+            card.dataset.uuid,
+            `Серия ${card.dataset.ord} — ${release.name.main}`,
+          );
+      });
     };
 
-    content.querySelectorAll(".ep-btn").forEach((btn) => {
-      btn.onclick = () =>
-        openPlayer(
-          btn.dataset.uuid,
-          `Серия ${btn.dataset.ord} — ${release.name.main}`,
-        );
+    const renderRelated = () => {
+      if (!release.related || release.related.length === 0) {
+        tabContainer.innerHTML = `<div class="empty-msg">Связанных релизов не найдено</div>`;
+        return;
+      }
+      tabContainer.innerHTML = `
+        <div class="related-list-modern">
+          ${release.related
+            .map(
+              (r) => `
+            <div class="related-card" data-id="${r.id}">
+              <img src="https://anilibria.top${r.poster?.preview || ""}">
+              <div class="related-card-info">
+                <h4>${r.name?.main || "Без названия"}</h4>
+                <p>${r.type?.full_string || ""} • ${r.year || ""}</p>
+              </div>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      `;
+      tabContainer.querySelectorAll(".related-card").forEach((card) => {
+        card.onclick = () => showDetails(card.dataset.id);
+      });
+    };
+
+    // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
+
+    // Кнопка назад
+    const backBtn = document.getElementById("back-to-prev-new");
+    if (backBtn) {
+      backBtn.onclick = () => {
+        details.style.display = "none";
+        document.getElementById(lastActiveScreen).style.display = "block";
+      };
+    }
+
+    // Смотреть первую
+    const watchMain = document.getElementById("start-watch-main");
+    if (watchMain && release.episodes.length > 0) {
+      watchMain.onclick = () => {
+        const e = release.episodes[0];
+        openPlayer(e.id, `Серия ${e.ordinal} — ${release.name.main}`);
+      };
+    }
+
+    // Переключение табов
+    content.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.onclick = () => {
+        content
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        if (btn.dataset.tab === "episodes") renderEpisodes();
+        else renderRelated();
+      };
     });
+
+    // Стартовый рендер
+    renderEpisodes();
   } catch (err) {
-    content.innerHTML = `<div class="error">${err}</div>`;
+    console.error(err);
+    content.innerHTML = `<div class="error">Ошибка загрузки: ${err}</div>`;
   }
 }
 
@@ -390,17 +487,6 @@ async function openPlayer(uuid, title) {
       if (volumeDisplay)
         volumeDisplay.innerText = Math.round(player.volume() * 100) + "%";
     });
-
-    document.getElementById("close-player").onclick = async () => {
-      if (window.hls) {
-        window.hls.destroy();
-        window.hls = null;
-      }
-      player.pause();
-      await appWindow.setFullscreen(false);
-      overlay.style.display = "none";
-      shell.style.display = "flex";
-    };
 
     const showHud = () => {
       hud.classList.remove("hud-hidden");
@@ -467,6 +553,31 @@ async function openPlayer(uuid, title) {
           hls.recoverMediaError();
       }
     });
+  }
+
+  const closeBtn = document.getElementById("close-player");
+  if (closeBtn) {
+    closeBtn.onclick = async () => {
+      // 1. Убиваем HLS поток (обязательно перед паузой плеера)
+      if (window.hls) {
+        window.hls.detachMedia();
+        window.hls.destroy();
+        window.hls = null;
+      }
+
+      // 2. Останавливаем плеер и очищаем источник
+      if (player) {
+        player.pause();
+        player.src(""); // Очистка, чтобы видео не докачивалось в фоне
+      }
+
+      // 3. Возвращаем интерфейс
+      await appWindow.setFullscreen(false);
+      document.getElementById("video-overlay").style.display = "none";
+      document.getElementById("app-shell").style.display = "flex";
+
+      console.log("Плеер успешно закрыт");
+    };
   }
 
   player.ready(() => {

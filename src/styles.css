@@ -222,6 +222,7 @@ body {
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.8);
   display: -webkit-box;
+  line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -330,6 +331,96 @@ body {
 .back-btn:hover {
   background: #e63946;
 }
+/* Контейнер для описания и табов */
+/* Главный контейнер под обложкой */
+.release-content-full {
+  display: flex;
+  flex-direction: column; /* Элементы строго друг под другом */
+  gap: 40px;
+  padding: 40px 10%; /* Большие отступы по бокам как в оригинале */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.section-title {
+  font-size: 24px;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.description-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #ccc;
+  max-width: 100%; /* Убираем сужение, чтобы текст дышал */
+}
+
+/* Табы */
+.details-tabs {
+  display: flex;
+  gap: 30px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 25px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  color: #777;
+  padding: 12px 0;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.tab-btn.active {
+  color: #ef4444; /* Акцентный красный */
+}
+
+.tab-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #ef4444;
+}
+
+/* Список эпизодов на всю ширину */
+.ep-list-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.ep-card-modern {
+  background: #161616; /* Темный фон карточки */
+  padding: 18px 25px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.ep-card-modern:hover {
+  background: #222;
+  border-color: #333;
+  transform: translateX(5px); /* Легкий эффект при наведении */
+}
+
+.ep-play-label {
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
 
 /* --- 7. Плеер (Overlay) --- */
 #video-overlay {
@@ -342,6 +433,12 @@ body {
   background: #000;
   display: none;
   flex-direction: column;
+}
+
+#close-player {
+  z-index: 1000001 !important; /* На один уровень выше, чем HUD и плеер */
+  cursor: pointer;
+  pointer-events: auto !important;
 }
 
 .video-js {
@@ -371,6 +468,169 @@ body {
 .hud-hidden {
   opacity: 0;
   cursor: none !important;
+}
+
+/* --- 8. НОВЫЕ СТИЛИ ДЕТАЛЕЙ (ДОБАВИТЬ В КОНЕЦ) --- */
+
+.details-page-container {
+  position: relative;
+  width: 100%;
+}
+
+/* Hero часть с размытым фоном */
+.release-hero {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.hero-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 20%;
+  filter: blur(50px) brightness(0.3);
+  transform: scale(1.1);
+  z-index: 1;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #0b0b0b 5%, transparent 100%);
+  z-index: 2;
+}
+
+.hero-content-wrapper {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.release-main-info {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.release-poster-large {
+  width: 300px;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.release-text-block h1 {
+  font-size: 52px;
+  margin: 10px 0;
+  font-weight: 800;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 30px;
+  max-width: 600px;
+  margin: 25px 0;
+}
+
+.info-item {
+  font-size: 14px;
+  color: #ccc;
+}
+.info-item span {
+  color: #fff;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+/* Кнопки */
+.action-bar {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.play-btn-large {
+  background: #e63946;
+  color: white;
+  border: none;
+  padding: 16px 35px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.back-pill {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+}
+
+/* Нижняя часть: Описание и Серии */
+.release-body-layout {
+  display: flex;
+  gap: 60px;
+  max-width: 1600px;
+  margin: 40px auto;
+  padding: 0 40px 60px 40px;
+}
+
+.description-column {
+  flex: 1;
+}
+.description-text {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #bbb;
+}
+
+.episodes-column {
+  width: 400px;
+  flex-shrink: 0;
+}
+.ep-list-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ep-card-modern {
+  background: #161616;
+  padding: 18px 25px;
+  border-radius: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: 0.2s;
+}
+
+.ep-card-modern:hover {
+  background: #222;
+  border-color: #e63946;
+  transform: translateX(5px);
+}
+
+.ep-play-label {
+  color: #e63946;
+  font-weight: 800;
+  font-size: 12px;
 }
 
 /* Качество и Громкость */
