@@ -433,6 +433,28 @@ body {
 .vjs-menu-item {
   text-transform: capitalize;
   padding: 10px !important;
+  transition: background 0.2s;
+}
+
+.vjs-menu-item.vjs-selected {
+  background-color: #e63946 !important;
+  color: white !important;
+}
+
+.vjs-menu-item:not(.vjs-selected) {
+  background-color: transparent !important;
+}
+
+.vjs-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Убираем синюю или серую обводку фокуса, которая часто похожа на выделение */
+.vjs-menu-item:focus,
+.vjs-menu-item:active {
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: rgba(255, 255, 255, 0.1) !important; /* Легкий эффект при клике */
 }
 
 .vjs-menu-item.vjs-selected {

@@ -29,17 +29,34 @@ class QualityMenuItem extends MenuItem {
     const label = options.isAuto ? `Авто (${options.label})` : options.label;
     super(player, { ...options, label });
     this.src = options.src;
+    this.selected(options.selected || false);
   }
 
   handleClick() {
     const currentTime = this.player_.currentTime();
     const isPaused = this.player_.paused();
 
+    const allMenuItems = this.player_.el().querySelectorAll(".vjs-menu-item");
+    allMenuItems.forEach((el) => {
+      el.classList.remove("vjs-selected");
+      el.setAttribute("aria-checked", "false");
+    });
+
+    if (this.menuButton_ && this.menuButton_.menu) {
+      this.menuButton_.menu.children().forEach((item) => {
+        if (item && typeof item.selected === "function") {
+          item.selected(false);
+        }
+      });
+    }
+
+    this.selected(true);
+    this.el().classList.add("vjs-selected");
+
+    // --- ЛОГИКА СМЕНЫ ИСТОЧНИКА ---
     if (window.hls) {
-      // Windows / Linux
       window.hls.loadSource(this.src);
     } else {
-      // macOS (Native HLS)
       this.player_.src({ src: this.src, type: "application/x-mpegURL" });
     }
 
@@ -47,7 +64,6 @@ class QualityMenuItem extends MenuItem {
       this.player_.currentTime(currentTime);
       if (!isPaused) this.player_.play();
     });
-    this.selected(true);
   }
 }
 
@@ -59,6 +75,9 @@ class QualityMenu extends MenuButton {
   }
   createItems() {
     const sources = this.options_.sources || [];
+    // Уникальный ID для каждой сессии меню, чтобы избежать кеширования выделения
+    const menuSessionId = Math.random().toString(36).substring(7);
+
     return sources.map((s, index) => {
       return new QualityMenuItem(this.player_, {
         label: s.label,
@@ -66,6 +85,7 @@ class QualityMenu extends MenuButton {
         isAuto: index === 0,
         selectable: true,
         selected: index === 0,
+        id: `q-item-${menuSessionId}-${index}`,
       });
     });
   }
@@ -313,8 +333,13 @@ async function showDetails(id) {
 async function openPlayer(uuid, title) {
   const overlay = document.getElementById("video-overlay");
   const shell = document.getElementById("app-shell");
-  const videoElem = document.getElementById("video-player");
   const hud = document.querySelector(".player-hud");
+
+  // 1. Получаем доступ к нативному элементу видео
+  let videoElem = document.getElementById("video-player");
+  if (player && player.tech_) {
+    videoElem = player.tech_.el();
+  }
 
   shell.style.display = "none";
   overlay.style.display = "flex";
@@ -326,6 +351,8 @@ async function openPlayer(uuid, title) {
   if (data.hls_720) sources.push({ label: "720p", src: data.hls_720 });
   if (data.hls_480) sources.push({ label: "480p", src: data.hls_480 });
 
+  const videoSrc = sources[0].src;
+
   if (!player) {
     player = videojs(videoElem, {
       controls: true,
@@ -334,18 +361,12 @@ async function openPlayer(uuid, title) {
       playbackRates: [0.5, 1, 1.25, 1.5, 2],
       userActions: {
         hotkeys: function (event) {
-          if (event.which === 37) {
-            this.currentTime(this.currentTime() - 10);
-          }
-          if (event.which === 39) {
-            this.currentTime(this.currentTime() + 10);
-          }
-          if (event.which === 38) {
+          if (event.which === 37) this.currentTime(this.currentTime() - 10);
+          if (event.which === 39) this.currentTime(this.currentTime() + 10);
+          if (event.which === 38)
             this.volume(Math.min(this.volume() + 0.05, 1));
-          }
-          if (event.which === 40) {
+          if (event.which === 40)
             this.volume(Math.max(this.volume() - 0.05, 0));
-          }
           if (event.which === 32) {
             if (this.paused()) this.play();
             else this.pause();
@@ -366,9 +387,8 @@ async function openPlayer(uuid, title) {
     });
 
     player.on("volumechange", () => {
-      if (volumeDisplay) {
+      if (volumeDisplay)
         volumeDisplay.innerText = Math.round(player.volume() * 100) + "%";
-      }
     });
 
     document.getElementById("close-player").onclick = async () => {
@@ -401,39 +421,45 @@ async function openPlayer(uuid, title) {
       overlay.style.cursor = "default";
     });
     player.on("play", showHud);
+  } else {
+    // СМЕНА СЕРИИ: Очистка старого потока
+    player.pause();
+    if (window.hls) {
+      window.hls.detachMedia();
+      window.hls.destroy();
+      window.hls = null;
+    }
   }
 
-  // Обновление меню качества
   const oldMenu = player.controlBar.getChild("QualityMenu");
-  if (oldMenu) player.controlBar.removeChild(oldMenu);
+  if (oldMenu) {
+    player.controlBar.removeChild(oldMenu);
+    oldMenu.dispose();
+  }
   player.controlBar.addChild(
     "QualityMenu",
     { sources },
     player.controlBar.children().length - 1,
   );
 
-  const videoSrc = sources[0].src;
+  // ЛОГИКА ВЫБОРА ДВИЖКА
+  const canNativeHls =
+    videoElem.canPlayType &&
+    videoElem.canPlayType("application/vnd.apple.mpegurl");
 
-  // --- ЛОГИКА ВЫБОРА ДВИЖКА ---
-  if (videoElem.canPlayType("application/vnd.apple.mpegurl")) {
-    // macOS / iOS
+  if (canNativeHls) {
     player.src({ src: videoSrc, type: "application/x-mpegURL" });
     player.one("loadedmetadata", () => {
       player.play().catch(() => {});
     });
   } else if (Hls.isSupported()) {
-    // Windows / Linux
-    if (window.hls) window.hls.destroy();
-
     const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
     hls.loadSource(videoSrc);
     hls.attachMedia(videoElem);
     window.hls = hls;
-
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       player.play().catch(() => {});
     });
-
     hls.on(Hls.Events.ERROR, (event, data) => {
       if (data.fatal) {
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
@@ -455,7 +481,6 @@ async function openPlayer(uuid, title) {
 // --- 8. Инициализация и события ---
 window.addEventListener("DOMContentLoaded", () => {
   window.showDetails = showDetails;
-
   document.querySelectorAll(".nav-item[data-screen]").forEach((btn) => {
     btn.onclick = () => {
       const target = btn.dataset.screen;
