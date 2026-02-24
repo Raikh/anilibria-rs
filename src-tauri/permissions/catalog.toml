@@ -13,7 +13,6 @@ identifier = "allow-full-release"
 description = "Разрешает вызывать команду получения подробной информации о релизе"
 commands.allow = ["get_full_release"]
 
-
 [[permission]]
 identifier = "allow-settings"
 description = "Разрешает вызывать команду настроек"

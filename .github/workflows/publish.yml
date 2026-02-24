@@ -65,6 +65,6 @@ jobs:
           tagName: v__VERSION__ # __VERSION__ берется из tauri.conf.json
           releaseName: "Anilibria-rs v__VERSION__"
           releaseBody: "Automated release from GitHub Actions"
-          releaseDraft: true
-          prerelease: false
+          releaseDraft: false
+          prerelease: true
           args: ${{ matrix.args }}

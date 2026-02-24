@@ -4,6 +4,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 
+// --- Структуры данных (без изменений) ---
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AnimeName {
     pub main: String,
@@ -23,19 +25,7 @@ pub struct Genre {
     pub id: Option<u64>,
     pub name: String,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Episode {
-    pub episode: u32,
-    pub name: Option<String>,
-    pub uuid: String,
-    pub hls: Option<serde_json::Value>,
-}
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Player {
-    pub host: String,
-    pub list: serde_json::Value,
-}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Anime {
     pub id: u64,
@@ -52,85 +42,78 @@ struct ApiResponse {
     data: Vec<Anime>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppSettings {
     pub api_url: String,
 }
 
-pub struct ConfigState(pub std::sync::Mutex<AppSettings>);
+// --- Состояние приложения ---
+// Теперь здесь хранится и клиент, и настройки
+pub struct AppState {
+    pub config: std::sync::Mutex<AppSettings>,
+    pub client: Client,
+}
+
+// Хелпер для получения базового URL (чтобы не писать lock каждый раз)
+impl AppState {
+    fn get_api_url(&self) -> String {
+        self.config.lock().unwrap().api_url.clone()
+    }
+}
+
+// --- Команды ---
 
 #[tauri::command]
-async fn get_catalog(state: tauri::State<'_, ConfigState>) -> Result<Vec<Anime>, String> {
-    let base_url: String = state.0.lock().unwrap().api_url.clone();
+async fn get_catalog(state: tauri::State<'_, AppState>) -> Result<Vec<Anime>, String> {
+    let url = format!("{}/anime/releases/latest?limit=15", state.get_api_url());
 
-    let url: String = format!("{}/anime/releases/latest?limit=15", base_url);
-
-    let client: Client = reqwest::Client::new();
-    let response: reqwest::Response = client
+    let response: reqwest::Response = state.client
         .get(&url)
         .header("User-Agent", "AniLibrix-Rust-Client")
-        .header("Accept", "application/json")
         .send()
         .await
         .map_err(|e: reqwest::Error| format!("Ошибка сети: {}", e))?;
 
-    if response.status().is_success() {
-        let data: Vec<Anime> = response
-            .json()
-            .await
-            .map_err(|e: reqwest::Error| format!("Ошибка парсинга последних релизов: {}", e))?;
-
-        Ok(data)
-    } else {
-        Err(format!("Сервер вернул статус: {}", response.status()))
-    }
+    response
+        .json::<Vec<Anime>>()
+        .await
+        .map_err(|e: reqwest::Error| format!("Ошибка парсинга последних релизов: {}", e))
 }
 
 #[tauri::command]
 async fn get_catalog_paginated(
-    state: tauri::State<'_, ConfigState>,
+    state: tauri::State<'_, AppState>,
     page: u32,
 ) -> Result<Vec<Anime>, String> {
-    let base_url = state.0.lock().unwrap().api_url.clone();
-    let limit: i32 = 15;
-
     let api_page: u32 = page + 1;
-
     let url: String = format!(
-        "{}/anime/catalog/releases?limit={}&page={}",
-        base_url, limit, api_page
+        "{}/anime/catalog/releases?limit=15&page={}",
+        state.get_api_url(), api_page
     );
 
-    let client: Client = reqwest::Client::new();
-    let response: reqwest::Response = client
+    let response: reqwest::Response = state.client
         .get(&url)
         .send()
         .await
         .map_err(|e: reqwest::Error| e.to_string())?;
 
-    if response.status().is_success() {
-        let res_body: ApiResponse = response.json().await.map_err(|e: reqwest::Error| {
-            format!("Ошибка парсинга JSON: {}. Проверьте структуру Anime", e)
-        })?;
-        Ok(res_body.data)
-    } else {
-        Err(format!("Ошибка сервера: {}", response.status()))
-    }
+    let res_body: ApiResponse = response.json().await.map_err(|e: reqwest::Error| {
+        format!("Ошибка парсинга JSON: {}", e)
+    })?;
+
+    Ok(res_body.data)
 }
 
 #[tauri::command]
 async fn get_anime_details(
-    state: tauri::State<'_, ConfigState>,
+    state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<serde_json::Value, String> {
-    let base_url: String = state.0.lock().unwrap().api_url.clone();
-    let url: String = format!("{}/anime/releases/episodes/{}", base_url, id);
+    let url: String = format!("{}/anime/releases/episodes/{}", state.get_api_url(), id);
 
-    let client: Client = reqwest::Client::new();
-    let response: reqwest::Response = client
+    let response: reqwest::Response = state.client
         .get(&url)
-        .header("Accept", "application/json")
-        .header("User-Agent", "Mozilla/5.0 (Tauri App)")
+        .header("User-Agent", "AniLibrix-Rust-Client")
         .send()
         .await
         .map_err(|e: reqwest::Error| e.to_string())?;
@@ -139,64 +122,40 @@ async fn get_anime_details(
         return Err(format!("Ошибка API: {}", response.status()));
     }
 
-    let json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    Ok(json)
+    response.json().await.map_err(|e: reqwest::Error| e.to_string())
 }
 
 #[tauri::command]
-async fn get_full_release(id: String) -> Result<serde_json::Value, String> {
-    let url: String = format!("https://anilibria.top/api/v1/anime/releases/{}", id);
-
-    let client: Client = reqwest::Client::new();
-    let response: reqwest::Response = client
+async fn get_full_release(state: tauri::State<'_, AppState>, id: String) -> Result<serde_json::Value, String> {
+    let url: String = format!("{}/anime/releases/{}", state.get_api_url(), id);
+    let response: reqwest::Response = state.client
         .get(&url)
-        .header("Accept", "application/json")
         .send()
         .await
         .map_err(|e: reqwest::Error| e.to_string())?;
 
-    if !response.status().is_success() {
-        return Err(format!("Ошибка API: {}", response.status()));
-    }
-
-    let json: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    Ok(json)
+    response.json().await.map_err(|e: reqwest::Error| e.to_string())
 }
 
 #[tauri::command]
 async fn search_releases(
-    state: tauri::State<'_, ConfigState>,
+    state: tauri::State<'_, AppState>,
     query: String,
 ) -> Result<Vec<Anime>, String> {
-    let base_url: String = state.0.lock().unwrap().api_url.clone();
+    let url: String = format!("{}/app/search/releases", state.get_api_url());
 
-    let url: String = format!("{}/app/search/releases", base_url);
-
-    let client: Client = reqwest::Client::new();
-    let response: reqwest::Response = client
+    let response: reqwest::Response = state.client
         .get(&url)
         .header("User-Agent", "AniLibrix-Rust-Client")
-        .header("Accept", "application/json")
         .query(&[("query", query.as_str())])
         .send()
         .await
         .map_err(|e: reqwest::Error| e.to_string())?;
 
     if response.status().is_success() {
-        let body_text: String = response
-            .text()
-            .await
-            .map_err(|e: reqwest::Error| e.to_string())?;
-
-        let data: Vec<Anime> =
-            serde_json::from_str(&body_text).map_err(|e: serde_json::Error| {
-                format!(
-                    "Ошибка десериализации списка: {}. Тело ответа: {}",
-                    e, body_text
-                )
-            })?;
-
-        Ok(data)
+        response.json::<Vec<Anime>>().await.map_err(|e| {
+            format!("Ошибка десериализации списка: {}", e)
+        })
     } else {
         Err(format!("Ошибка API: {}", response.status()))
     }
@@ -204,33 +163,40 @@ async fn search_releases(
 
 #[tauri::command]
 async fn save_settings(
-    state: tauri::State<'_, ConfigState>,
+    state: tauri::State<'_, AppState>,
     new_settings: AppSettings,
 ) -> Result<(), String> {
-    let mut config: std::sync::MutexGuard<'_, AppSettings> = state.0.lock().unwrap();
+    let mut config: std::sync::MutexGuard<'_, AppSettings> = state.config.lock().unwrap();
     config.api_url = new_settings.api_url;
-
-    // TODO: Хранить настройки в файле или БД
-
-    println!("Настройки обновлены: {}", config.api_url);
     Ok(())
 }
 
 #[tauri::command]
-fn get_settings(state: tauri::State<ConfigState>) -> AppSettings {
-    state.0.lock().unwrap().clone()
+fn get_settings(state: tauri::State<'_, AppState>) -> AppSettings {
+    state.config.lock().unwrap().clone()
 }
 
 fn main() {
+    // Создаем клиент один раз при запуске.
+    // Настраиваем его (таймауты, куки и т.д.) здесь.
+    let http_client: Client = Client::builder()
+        .user_agent("AniLibrix-Rust-Client")
+        .build()
+        .expect("Failed to create HTTP client");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .setup(|app: &mut tauri::App| {
+        .setup(move |app: &mut tauri::App| {
             let initial_settings: AppSettings = AppSettings {
                 api_url: "https://anilibria.top/api/v1".into(),
             };
 
-            app.manage(ConfigState(std::sync::Mutex::new(initial_settings)));
+            // Передаем клиент и настройки в общее состояние
+            app.manage(AppState {
+                config: std::sync::Mutex::new(initial_settings),
+                client: http_client,
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
