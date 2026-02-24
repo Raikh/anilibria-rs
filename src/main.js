@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import Hls from "hls.js";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
 import "./styles.css";
@@ -7,7 +8,7 @@ import "./styles.css";
 const appWindow = getCurrentWindow();
 let player = null;
 let hudTimer = null;
-let lastActiveScreen = "catalog"; // По умолчанию ID главного контейнера
+let lastActiveScreen = "catalog";
 let searchTimeout;
 let currentPage = 0;
 let isFetching = false;
@@ -29,10 +30,19 @@ class QualityMenuItem extends MenuItem {
     super(player, { ...options, label });
     this.src = options.src;
   }
+
   handleClick() {
     const currentTime = this.player_.currentTime();
     const isPaused = this.player_.paused();
-    this.player_.src({ src: this.src, type: "application/x-mpegURL" });
+
+    if (window.hls) {
+      // Windows / Linux
+      window.hls.loadSource(this.src);
+    } else {
+      // macOS (Native HLS)
+      this.player_.src({ src: this.src, type: "application/x-mpegURL" });
+    }
+
     this.player_.one("loadedmetadata", () => {
       this.player_.currentTime(currentTime);
       if (!isPaused) this.player_.play();
@@ -188,9 +198,9 @@ const observer = new IntersectionObserver(
     if (entries[0].isIntersecting) loadNextPage();
   },
   { threshold: 0.1, root: viewport },
-); // Наблюдаем относительно вьюпорта
+);
 
-// --- 5. Инициализация главной (Слайдер + Сетка) ---
+// --- 5. Инициализация главной ---
 async function init() {
   const list = await invoke("get_catalog");
   if (!Array.isArray(list) || list.length === 0) return;
@@ -249,13 +259,11 @@ async function showDetails(id) {
   const details = document.getElementById("anime-details");
   const content = document.getElementById("details-content");
 
-  // Скрываем все и показываем детали
   document.getElementById("catalog").style.display = "none";
   document.getElementById("catalog-screen").style.display = "none";
   details.style.display = "block";
 
   viewport.scrollTo(0, 0);
-
   content.innerHTML = `<div class="loading-spinner">Загрузка релиза...</div>`;
 
   try {
@@ -327,23 +335,18 @@ async function openPlayer(uuid, title) {
       userActions: {
         hotkeys: function (event) {
           if (event.which === 37) {
-            event.preventDefault();
             this.currentTime(this.currentTime() - 10);
           }
           if (event.which === 39) {
-            event.preventDefault();
             this.currentTime(this.currentTime() + 10);
           }
           if (event.which === 38) {
-            event.preventDefault();
             this.volume(Math.min(this.volume() + 0.05, 1));
           }
           if (event.which === 40) {
-            event.preventDefault();
             this.volume(Math.max(this.volume() - 0.05, 0));
           }
           if (event.which === 32) {
-            event.preventDefault();
             if (this.paused()) this.play();
             else this.pause();
           }
@@ -351,7 +354,6 @@ async function openPlayer(uuid, title) {
       },
     });
 
-    // --- Инициализация отображения громкости (только 1 раз) ---
     volumeDisplay = document.createElement("div");
     volumeDisplay.className = "vjs-volume-level-number";
 
@@ -365,24 +367,25 @@ async function openPlayer(uuid, title) {
 
     player.on("volumechange", () => {
       if (volumeDisplay) {
-        const vol = Math.round(player.volume() * 100);
-        volumeDisplay.innerText = vol + "%";
+        volumeDisplay.innerText = Math.round(player.volume() * 100) + "%";
       }
     });
 
     document.getElementById("close-player").onclick = async () => {
+      if (window.hls) {
+        window.hls.destroy();
+        window.hls = null;
+      }
       player.pause();
       await appWindow.setFullscreen(false);
       overlay.style.display = "none";
       shell.style.display = "flex";
-      overlay.style.cursor = "default";
     };
 
     const showHud = () => {
       hud.classList.remove("hud-hidden");
       overlay.style.cursor = "default";
       clearTimeout(hudTimer);
-
       hudTimer = setTimeout(() => {
         if (player && !player.paused()) {
           hud.classList.add("hud-hidden");
@@ -392,37 +395,60 @@ async function openPlayer(uuid, title) {
     };
 
     overlay.onmousemove = showHud;
-
     player.on("pause", () => {
       clearTimeout(hudTimer);
       hud.classList.remove("hud-hidden");
       overlay.style.cursor = "default";
     });
-
     player.on("play", showHud);
   }
 
-  // Логика обновления меню качества (выполняется при каждом открытии)
+  // Обновление меню качества
   const oldMenu = player.controlBar.getChild("QualityMenu");
   if (oldMenu) player.controlBar.removeChild(oldMenu);
-
   player.controlBar.addChild(
     "QualityMenu",
     { sources },
     player.controlBar.children().length - 1,
   );
 
-  player.src({ src: sources[0].src, type: "application/x-mpegURL" });
+  const videoSrc = sources[0].src;
+
+  // --- ЛОГИКА ВЫБОРА ДВИЖКА ---
+  if (videoElem.canPlayType("application/vnd.apple.mpegurl")) {
+    // macOS / iOS
+    player.src({ src: videoSrc, type: "application/x-mpegURL" });
+    player.one("loadedmetadata", () => {
+      player.play().catch(() => {});
+    });
+  } else if (Hls.isSupported()) {
+    // Windows / Linux
+    if (window.hls) window.hls.destroy();
+
+    const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+    hls.loadSource(videoSrc);
+    hls.attachMedia(videoElem);
+    window.hls = hls;
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      player.play().catch(() => {});
+    });
+
+    hls.on(Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR)
+          hls.recoverMediaError();
+      }
+    });
+  }
 
   player.ready(() => {
-    player.play();
     const el = player.el();
     el.setAttribute("tabindex", "-1");
     el.focus();
-    // На всякий случай обновляем громкость при открытии нового видео
-    if (volumeDisplay) {
+    if (volumeDisplay)
       volumeDisplay.innerText = Math.round(player.volume() * 100) + "%";
-    }
   });
 }
 
@@ -430,23 +456,19 @@ async function openPlayer(uuid, title) {
 window.addEventListener("DOMContentLoaded", () => {
   window.showDetails = showDetails;
 
-  // Навигация
   document.querySelectorAll(".nav-item[data-screen]").forEach((btn) => {
     btn.onclick = () => {
       const target = btn.dataset.screen;
       lastActiveScreen = target === "home" ? "catalog" : "catalog-screen";
-
       document
         .querySelectorAll(".nav-item")
         .forEach((i) => i.classList.remove("active"));
       btn.classList.add("active");
-
       document.getElementById("catalog").style.display =
         target === "home" ? "block" : "none";
       document.getElementById("catalog-screen").style.display =
         target === "catalog" ? "block" : "none";
       document.getElementById("anime-details").style.display = "none";
-
       if (target === "catalog" && currentPage === 0) loadNextPage();
       viewport.scrollTo(0, 0);
     };

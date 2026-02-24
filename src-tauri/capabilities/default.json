@@ -18,6 +18,7 @@
     "allow-get-catalog",
     "allow-get-anime-details",
     "allow-full-release",
-    "allow-settings"
+    "allow-settings",
+    "allow-video-streams"
   ]
 }

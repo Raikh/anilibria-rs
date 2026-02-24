@@ -15,12 +15,12 @@
       {
         "title": "anilibria-rs",
         "width": 1024,
-        "height": 768
+        "height": 768,
+        "devtools": true
       }
     ],
     "security": {
-      "csp": "default-src 'self' tauri://localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https: http:; media-src 'self' tauri://localhost blob: https:;"
-    }
+"csp": "default-src 'self' tauri://localhost; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: *; connect-src 'self' https: http: *; media-src 'self' tauri://localhost blob: https: *; worker-src 'self' blob:; font-src 'self' https: data: tauri://localhost; upgrade-insecure-requests;"    }
   },
   "bundle": {
     "active": true,

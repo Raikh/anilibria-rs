@@ -67,7 +67,8 @@ impl AppState {
 async fn get_catalog(state: tauri::State<'_, AppState>) -> Result<Vec<Anime>, String> {
     let url = format!("{}/anime/releases/latest?limit=15", state.get_api_url());
 
-    let response: reqwest::Response = state.client
+    let response: reqwest::Response = state
+        .client
         .get(&url)
         .header("User-Agent", "AniLibrix-Rust-Client")
         .send()
@@ -88,18 +89,21 @@ async fn get_catalog_paginated(
     let api_page: u32 = page + 1;
     let url: String = format!(
         "{}/anime/catalog/releases?limit=15&page={}",
-        state.get_api_url(), api_page
+        state.get_api_url(),
+        api_page
     );
 
-    let response: reqwest::Response = state.client
+    let response: reqwest::Response = state
+        .client
         .get(&url)
         .send()
         .await
         .map_err(|e: reqwest::Error| e.to_string())?;
 
-    let res_body: ApiResponse = response.json().await.map_err(|e: reqwest::Error| {
-        format!("Ошибка парсинга JSON: {}", e)
-    })?;
+    let res_body: ApiResponse = response
+        .json()
+        .await
+        .map_err(|e: reqwest::Error| format!("Ошибка парсинга JSON: {}", e))?;
 
     Ok(res_body.data)
 }
@@ -111,7 +115,8 @@ async fn get_anime_details(
 ) -> Result<serde_json::Value, String> {
     let url: String = format!("{}/anime/releases/episodes/{}", state.get_api_url(), id);
 
-    let response: reqwest::Response = state.client
+    let response: reqwest::Response = state
+        .client
         .get(&url)
         .header("User-Agent", "AniLibrix-Rust-Client")
         .send()
@@ -122,19 +127,29 @@ async fn get_anime_details(
         return Err(format!("Ошибка API: {}", response.status()));
     }
 
-    response.json().await.map_err(|e: reqwest::Error| e.to_string())
+    response
+        .json()
+        .await
+        .map_err(|e: reqwest::Error| e.to_string())
 }
 
 #[tauri::command]
-async fn get_full_release(state: tauri::State<'_, AppState>, id: String) -> Result<serde_json::Value, String> {
+async fn get_full_release(
+    state: tauri::State<'_, AppState>,
+    id: String,
+) -> Result<serde_json::Value, String> {
     let url: String = format!("{}/anime/releases/{}", state.get_api_url(), id);
-    let response: reqwest::Response = state.client
+    let response: reqwest::Response = state
+        .client
         .get(&url)
         .send()
         .await
         .map_err(|e: reqwest::Error| e.to_string())?;
 
-    response.json().await.map_err(|e: reqwest::Error| e.to_string())
+    response
+        .json()
+        .await
+        .map_err(|e: reqwest::Error| e.to_string())
 }
 
 #[tauri::command]
@@ -144,7 +159,8 @@ async fn search_releases(
 ) -> Result<Vec<Anime>, String> {
     let url: String = format!("{}/app/search/releases", state.get_api_url());
 
-    let response: reqwest::Response = state.client
+    let response: reqwest::Response = state
+        .client
         .get(&url)
         .header("User-Agent", "AniLibrix-Rust-Client")
         .query(&[("query", query.as_str())])
@@ -153,9 +169,10 @@ async fn search_releases(
         .map_err(|e: reqwest::Error| e.to_string())?;
 
     if response.status().is_success() {
-        response.json::<Vec<Anime>>().await.map_err(|e| {
-            format!("Ошибка десериализации списка: {}", e)
-        })
+        response
+            .json::<Vec<Anime>>()
+            .await
+            .map_err(|e| format!("Ошибка десериализации списка: {}", e))
     } else {
         Err(format!("Ошибка API: {}", response.status()))
     }
@@ -197,6 +214,10 @@ fn main() {
                 config: std::sync::Mutex::new(initial_settings),
                 client: http_client,
             });
+            for _window in app.webview_windows().values() {
+                #[cfg(debug_assertions)]
+                let _ = _window.open_devtools();
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -17,3 +17,10 @@ commands.allow = ["get_full_release"]
 identifier = "allow-settings"
 description = "Разрешает вызывать команду настроек"
 commands.allow = ["get_settings", "save_settings"]
+
+[[permission]]
+identifier = "allow-video-streams"
+description = "Разрешает загрузку видео-сегментов"
+
+[[permission.scope.allow]]
+url = "https://*/*"
