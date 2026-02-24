@@ -1,6 +1,6 @@
 [package]
 name = "anilibria-rs"
-version = "0.1.1"
+version = "0.1.3"
 description = "AniLibria Rust Client"
 authors = ["Raikh"]
 edition = "2024"
