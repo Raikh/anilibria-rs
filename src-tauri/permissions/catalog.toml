@@ -1,7 +1,7 @@
 [[permission]]
 identifier = "allow-get-catalog"
 description = "Разрешает вызывать команду получения списка аниме"
-commands.allow = ["get_catalog"]
+commands.allow = ["get_catalog", "get_catalog_paginated", "search_releases"]
 
 [[permission]]
 identifier = "allow-get-anime-details"
@@ -12,3 +12,9 @@ commands.allow = ["get_anime_details"]
 identifier = "allow-full-release"
 description = "Разрешает вызывать команду получения подробной информации о релизе"
 commands.allow = ["get_full_release"]
+
+
+[[permission]]
+identifier = "allow-settings"
+description = "Разрешает вызывать команду настроек"
+commands.allow = ["get_settings", "save_settings"]

@@ -1,3 +1,4 @@
+/* --- 1. Глобальные стили и Оболочка --- */
 body {
   margin: 0;
   background: #0b0b0b;
@@ -7,44 +8,119 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
-  overflow: hidden;
+  overflow: hidden; /* Отключаем скролл у body, чтобы работал внутренний вьюпорт */
 }
 
 #app-shell {
+  display: flex;
+  flex-direction: column; /* Меню сверху, контент снизу */
   width: 100vw;
   height: 100vh;
-  overflow-y: auto;
 }
 
-#app-shell::-webkit-scrollbar {
+/* Область основного контента */
+#main-viewport {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+/* Стилизация скроллбара */
+#main-viewport::-webkit-scrollbar {
   width: 8px;
 }
-#app-shell::-webkit-scrollbar-thumb {
+#main-viewport::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 4px;
 }
-#app-shell::-webkit-scrollbar-thumb:hover {
+#main-viewport::-webkit-scrollbar-thumb:hover {
   background: #e63946;
 }
 
 .container {
-  max-width: 1400px;
+  max-width: 1600px; /* Увеличено для широких экранов */
   margin: 0 auto;
-  padding: 0 40px;
+  padding: 0 40px 60px 40px;
 }
 
+/* --- 2. Горизонтальная навигация (Top Nav) --- */
+.side-nav {
+  width: 100%;
+  height: 70px;
+  background: #000;
+  display: flex;
+  flex-direction: row; /* Элементы в ряд */
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  border-bottom: 1px solid #1a1a1a;
+  box-sizing: border-box;
+  z-index: 100;
+  flex-shrink: 0; /* Чтобы меню не сжималось */
+}
+
+.nav-links {
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+}
+
+.nav-item {
+  color: #888;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: 0.3s;
+  padding: 23px 0; /* Высота попадает в границы хедера */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 3px solid transparent;
+}
+
+.nav-item:hover {
+  color: #eee;
+}
+
+.nav-item.active {
+  color: #fff;
+  border-bottom: 3px solid #e63946;
+}
+
+.nav-footer {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Кнопка настроек в меню */
+.settings-icon-btn {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.settings-icon-btn:hover {
+  color: #e63946;
+  transform: rotate(45deg);
+}
+
+/* --- 3. Шапки секций и Поиск --- */
 .catalog-header {
-  padding-top: 60px;
-  padding-bottom: 20px;
+  padding: 40px 0 25px 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 15px;
 }
 
 .title-group {
   display: flex;
-  align-items: baseline;
-  gap: 15px;
+  align-items: center;
+  gap: 25px;
+  width: 100%;
 }
 
 .catalog-header h1 {
@@ -52,8 +128,6 @@ body {
   font-weight: 800;
   margin: 0;
   letter-spacing: -1px;
-  color: #fff;
-  text-transform: none;
 }
 
 .count-badge {
@@ -61,39 +135,141 @@ body {
   font-size: 14px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
-.header-line {
-  width: 50px;
-  height: 4px;
+.search-box {
+  flex: 1;
+  max-width: 400px;
+  margin-left: auto;
+}
+
+#catalog-search-input {
+  width: 100%;
+  background: #161616;
+  border: 1px solid #333;
+  padding: 10px 18px;
+  border-radius: 8px;
+  color: white;
+  outline: none;
+  transition: 0.2s;
+}
+
+#catalog-search-input:focus {
+  border-color: #e63946;
+}
+
+/* --- 4. Hero Слайдер (Кинематографичный) --- */
+.hero-section {
+  position: relative;
+  width: 100%;
+  height: 650px; /* Увеличенная высота */
+  background: #121212;
+  overflow: hidden;
+  margin-bottom: 50px;
+}
+
+.hero-container {
+  display: flex;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.hero-item {
+  min-width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 80px;
+  box-sizing: border-box;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 20%;
+  z-index: 1;
+}
+
+.hero-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right, #0b0b0b 15%, transparent 70%),
+    linear-gradient(to top, #0b0b0b 5%, transparent 40%);
+}
+
+.hero-info {
+  position: relative;
+  z-index: 2;
+  max-width: 750px;
+}
+
+.hero-info h2 {
+  font-size: 64px;
+  margin: 0 0 20px 0;
+  font-weight: 800;
+  line-height: 1.05;
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.hero-info p {
+  font-size: 18px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 30px;
+}
+
+.slider-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  padding: 25px 15px;
+  cursor: pointer;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  transition: 0.3s;
+}
+.slider-btn:hover {
   background: #e63946;
-  border-radius: 10px;
+}
+.slider-btn.prev {
+  left: 20px;
+}
+.slider-btn.next {
+  right: 20px;
 }
 
-/* Сетка карточек */
+/* --- 5. Сетки и Карточки --- */
 .release-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 30px;
-  padding-top: 20px;
-  padding-bottom: 60px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 35px;
 }
 
 .card {
   background: #161616;
   border-radius: 16px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   border: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
 }
 
 .card:hover {
-  transform: translateY(-8px);
-  background: #1f1f1f;
-  border-color: rgba(230, 57, 70, 0.3);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+  transform: translateY(-10px);
+  border-color: rgba(230, 57, 70, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .card img {
@@ -103,195 +279,236 @@ body {
 }
 
 .card-info {
-  padding: 15px;
+  padding: 18px;
 }
-
 .card h3 {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: 16px;
   font-weight: 600;
-  color: #eee;
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+/* Горизонтальный список каталога */
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.catalog-row {
+  display: flex;
+  gap: 20px;
+  background: #161616;
+  padding: 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+  border: 1px solid transparent;
+}
+
+.catalog-row:hover {
+  background: #1a1a1a;
+  border-color: #333;
+  transform: translateX(10px);
+}
+
+.catalog-img {
+  width: 120px;
+  height: 170px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.tags span {
+  background: #333;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #eee;
+  margin-right: 6px;
+}
+
+/* --- 6. Детали аниме --- */
 .details-layout {
   display: flex;
-  gap: 40px;
-  padding: 60px 0;
+  gap: 60px;
+  padding: 40px 0;
 }
-
 .details-sidebar img {
-  width: 300px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.ep-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 25px;
+  width: 350px;
+  border-radius: 15px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
 }
 
 .ep-btn,
 .back-btn {
-  background: #222;
-  border: 1px solid #444;
+  background: #1a1a1a;
+  border: 1px solid #333;
   color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 12px 28px;
+  border-radius: 10px;
   cursor: pointer;
   transition: 0.2s;
-  font-weight: 500;
+  font-weight: 600;
 }
-
 .ep-btn:hover,
 .back-btn:hover {
   background: #e63946;
   border-color: #e63946;
-  transform: scale(1.05);
 }
 
+/* --- 7. Плеер и Модалки --- */
+/* --- 7. Видео плеер (FIX: Fullscreen Overlay) --- */
 #video-overlay {
-  position: fixed;
+  position: fixed; /* Плеер всегда поверх всего */
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 9999;
-  background: black;
-  display: none;
+  z-index: 99999; /* Максимальный приоритет */
+  background: #000;
+  display: none; /* Включается через JS */
   flex-direction: column;
+  transition: cursor 0.3s ease;
 }
 
+/* Обертка для самого video-js, чтобы он не сжимался */
 .video-js {
-  width: 100vw !important;
-  height: 100vh !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
+/* Элементы управления HUD поверх видео */
 .player-hud {
   position: absolute;
   top: 0;
+  left: 0;
   width: 100%;
   z-index: 10;
-  padding: 20px 40px;
-  background: linear-gradient(rgba(0, 0, 0, 0.8), transparent);
+  padding: 30px 40px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
   display: flex;
   align-items: center;
   gap: 20px;
-  pointer-events: none;
-  transition:
-    opacity 0.5s ease,
-    transform 0.5s ease;
+  pointer-events: none; /* Пропускает клики к видео */
+  transition: opacity 0.3s;
 }
 
-.player-hud button,
-.player-hud h2 {
-  pointer-events: auto;
+.player-hud * {
+  pointer-events: auto; /* Но кнопки в HUD кликабельны */
 }
 
 .hud-hidden {
   opacity: 0;
-  transform: translateY(-20px);
+  cursor: none !important;
 }
 
-.vjs-playback-rate {
-  width: auto !important;
-  min-width: 4em;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
+/* --- Исправление иконки качества --- */
+
+/* Контейнер кнопки качества */
+.vjs-quality-menu-button {
+  cursor: pointer;
 }
 
-.vjs-playback-rate .vjs-playback-rate-value {
-  font-size: 1.2em !important;
-  line-height: normal !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
+/* Назначение иконки (используем стандартный глиф VideoJS для настроек/качества) */
 .vjs-quality-menu-button .vjs-icon-placeholder:before {
   font-family: VideoJS;
-  content: "\f114";
+  content: "\f110"; /* Код иконки 'шестеренка' или '\f114' для списков */
   font-size: 1.8em;
   line-height: 1.6;
 }
 
-.vjs-menu {
-  display: block !important;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease-out;
-  bottom: 4.5em !important;
-  left: 50% !important;
-  transform: translateX(-50%) translateY(10px);
-  width: auto !important;
-  min-width: 120px !important;
-}
-
-.vjs-control:hover .vjs-menu {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(0);
-}
-
+/* Стили выпадающего меню качества */
 .vjs-menu-content {
-  background-color: rgba(20, 20, 20, 0.95) !important;
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px !important;
-  padding: 8px !important;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 4px !important;
+  background-color: rgba(20, 20, 20, 0.9) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 8px !important;
+  bottom: 1.5em !important;
 }
 
 .vjs-menu-item {
-  border-radius: 8px !important;
-  padding: 10px 20px !important;
-  font-size: 14px !important;
-  text-transform: none !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  white-space: nowrap !important;
-  transition: background 0.2s;
-}
-
-.vjs-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  text-transform: capitalize;
+  padding: 10px !important;
 }
 
 .vjs-menu-item.vjs-selected {
   background-color: #e63946 !important;
   color: white !important;
+}
+
+/* --- Отображение громкости числом --- */
+.vjs-volume-level-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
   font-weight: bold;
+  color: #eee;
+  padding: 0 5px;
+  min-width: 40px;
+  pointer-events: none; /* Чтобы не мешало кликать на регулятор */
 }
 
-.vjs-control-text,
-.vjs-menu-title {
-  display: none !important;
+/* Настройка контейнера панели громкости, чтобы число влезло */
+.vjs-volume-panel {
+  display: flex !important;
+  align-items: center;
+  width: auto !important;
 }
 
-.vjs-control:focus {
-  outline: none !important;
-  box-shadow: none !important;
+/* Чтобы число было видно всегда, а не только при наведении */
+.video-js .vjs-volume-panel {
+  margin-right: 10px;
 }
 
-.vjs-fullscreen-control {
-  cursor: pointer !important;
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
 }
 
-body.is-fullscreen #video-overlay,
-body.is-fullscreen .video-js {
-  width: 100vw !important;
-  height: 100vh !important;
+.modal-content {
+  background: #161616;
+  padding: 40px;
+  border-radius: 20px;
+  width: 450px;
+  border: 1px solid #333;
+}
+
+/* Скелетоны для загрузки */
+.skeleton-title {
+  width: 60%;
+  height: 40px;
+  background: #222;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  animation: pulse 1.5s infinite;
+}
+.skeleton-img {
+  width: 350px;
+  height: 500px;
+  background: #222;
+  border-radius: 15px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
 }
