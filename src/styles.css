@@ -142,8 +142,11 @@ body {
 
 .search-box {
   flex: 1;
+  display: flex; /* Включаем flex для выравнивания в ряд */
   max-width: 400px;
   margin-left: auto;
+  align-items: center;
+  gap: 10px; /* Расстояние между кнопкой и инпутом */
 }
 
 #catalog-search-input {
@@ -159,6 +162,42 @@ body {
 
 #catalog-search-input:focus {
   border-color: #e63946;
+}
+
+.clear-btn {
+  position: static;
+  order: -1;
+  display: none; /* Управляется через JS (flex) */
+  align-items: center;
+  justify-content: center;
+
+  /* Увеличиваем размер */
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+
+  background: rgba(230, 57, 70, 0.1); /* Легкий красный фон */
+  border: 1px solid rgba(230, 57, 70, 0.3);
+  border-radius: 8px;
+
+  color: #e63946;
+  font-size: 14px; /* Размер текста/иконки */
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.clear-btn:hover {
+  background: #e63946;
+  color: white;
+  border-color: #e63946;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.2);
+}
+
+.clear-btn:active {
+  transform: translateY(0);
 }
 
 /* --- 4. Hero Слайдер --- */
@@ -284,14 +323,30 @@ body {
   padding: 18px;
 }
 
+#search-results-container {
+  display: flex !important;
+  flex-direction: column !important; /* Выстраиваем карточки в колонку */
+  gap: 15px;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#search-results-container:empty {
+  display: none !important;
+}
+
 .catalog-row {
   display: flex;
+  width: 100%;
   gap: 20px;
   background: #161616;
   padding: 15px;
   border-radius: 12px;
   cursor: pointer;
   transition: 0.2s;
+  box-sizing: border-box;
+  align-items: flex-start;
 }
 
 .catalog-row:hover {
@@ -301,9 +356,55 @@ body {
 
 .catalog-img {
   width: 120px;
-  height: 170px;
+  height: auto;
   object-fit: cover;
   border-radius: 8px;
+}
+
+.catalog-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Небольшой зазор между элементами */
+}
+
+.catalog-info h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Контейнер для жанров */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+/* Сами рамки жанров */
+.tag-badge {
+  font-size: 11px; /* Шрифт заметно меньше названия */
+  text-transform: lowercase; /* Стилизация под современные UI */
+  color: #b3b3b3;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+/* Описание чуть приглушим, чтобы выделить название */
+.desc-short {
+  color: #999;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  line-clamp: 3;
+  -webkit-line-clamp: 3; /* Ограничение описания до 3 строк */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* --- 6. Детали --- */

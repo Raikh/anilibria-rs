@@ -16,6 +16,7 @@ let volumeDisplay = null;
 
 // Элементы DOM
 const viewport = document.getElementById("main-viewport");
+const clearSearchBtn = document.getElementById("clear-search-btn");
 const searchInput = document.getElementById("catalog-search-input");
 const searchResults = document.getElementById("search-results-container");
 const infiniteWrapper = document.getElementById("infinite-scroll-wrapper");
@@ -96,19 +97,33 @@ if (!videojs.getComponent("QualityMenu")) {
 }
 
 // --- 2. Поиск ---
+function resetSearch() {
+  searchInput.value = ""; // Очищаем инпут
+  clearSearchBtn.style.display = "none"; // Скрываем кнопку сброса
+  searchResults.style.display = "none"; // Скрываем результаты поиска
+  searchResults.innerHTML = ""; // Очищаем контейнер результатов
+  infiniteWrapper.style.display = "block"; // Показываем основной каталог
+}
+
+clearSearchBtn.onclick = resetSearch;
+
 searchInput.addEventListener("input", (e) => {
   const query = e.target.value.trim();
+  clearSearchBtn.style.display = query.length > 0 ? "flex" : "none";
+
   clearTimeout(searchTimeout);
 
+  // Если запрос стерт
   if (query.length === 0) {
-    searchResults.style.display = "none";
-    infiniteWrapper.style.display = "block";
+    resetSearch();
     return;
   }
 
-  if (query.length < 4) return;
+  // Не ищем, если слишком коротко (по желанию)
+  if (query.length < 3) return;
 
   searchTimeout = setTimeout(async () => {
+    // Скрываем бесконечный список, показываем контейнер поиска
     infiniteWrapper.style.display = "none";
     searchResults.style.display = "flex";
     searchResults.innerHTML =
@@ -116,26 +131,32 @@ searchInput.addEventListener("input", (e) => {
 
     try {
       const results = await invoke("search_releases", { query });
+
       if (!results || results.length === 0) {
         searchResults.innerHTML =
           '<div class="count-badge">Ничего не найдено</div>';
         return;
       }
 
+      // Отрисовка результатов (используем те же классы, что в каталоге для единообразия)
       searchResults.innerHTML = results
         .map((a) => {
           const posterUrl =
             a.poster.preview || a.poster.thumbnail || a.poster.src;
           return `
-          <div class="catalog-row" data-id="${a.id}">
+            <div class="catalog-row" data-id="${a.id}">
             <img src="https://anilibria.top${posterUrl}" class="catalog-img">
             <div class="catalog-info">
-              <h3>${a.name.main}</h3>
-              <div class="tags">${a.genres?.map((g) => `<span>${g.name}</span>`).join("") || ""}</div>
-              <p class="desc-short">${a.description || ""}</p>
+                <h3>${a.name.main}</h3>
+
+                <div class="tags">
+                ${a.genres?.map((g) => `<span class="tag-badge">${g.name}</span>`).join("") || ""}
+                </div>
+
+                <p class="desc-short">${a.description || ""}</p>
             </div>
-          </div>
-        `;
+            </div>
+            `;
         })
         .join("");
     } catch (err) {
@@ -192,15 +213,17 @@ async function loadNextPage() {
       .map((a) => {
         const posterUrl = a.poster.preview || a.poster.thumbnail;
         return `
-            <div class="catalog-row" data-id="${a.id}">
-                <img src="https://anilibria.top${posterUrl}" class="catalog-img">
-                <div class="catalog-info">
-                    <div class="tags">${a.genres?.map((g) => `<span>${g.name}</span>`).join("") || ""}</div>
-                    <h3>${a.name.main}</h3>
-                    <p class="desc-short">${a.description || "..."}</p>
+        <div class="catalog-row" data-id="${a.id}">
+            <img src="https://anilibria.top${posterUrl}" class="catalog-img">
+            <div class="catalog-info">
+                <h3>${a.name.main}</h3>
+                <div class="tags">
+                    ${a.genres?.map((g) => `<span class="tag-badge">${g.name}</span>`).join("") || ""}
                 </div>
+                <p class="desc-short">${a.description || "..."}</p>
             </div>
-        `;
+        </div>
+    `;
       })
       .join("");
 
@@ -288,9 +311,10 @@ async function showDetails(id) {
   content.innerHTML = `<div class="loading-spinner">Загрузка релиза...</div>`;
 
   try {
+    // Получаем данные из Rust (включая related_franchise)
     const release = await invoke("get_full_release", { id: String(id) });
 
-    // Формируем HTML
+    // 1. Формируем HTML структуру (Классы и ID синхронизированы)
     content.innerHTML = `
       <div class="details-page-container">
         <div class="release-hero">
@@ -324,7 +348,7 @@ async function showDetails(id) {
           <div class="tabs-wrapper">
             <div class="details-tabs">
               <button class="tab-btn active" data-tab="episodes">Эпизоды</button>
-              <button id="tab-related-btn" class="tab-btn" data-tab="related">Связанное</button>
+              <button class="tab-btn" data-tab="related">Связанное</button>
             </div>
             <div id="tab-content-container"></div>
           </div>
@@ -332,9 +356,10 @@ async function showDetails(id) {
       </div>
     `;
 
-    // --- ВНУТРЕННИЕ ФУНКЦИИ РЕНДЕРИНГА ---
+    // Ссылка на контейнер, куда будем рисовать серии или франшизу
     const tabContainer = document.getElementById("tab-content-container");
 
+    // 2. Функция рендеринга Эпизодов
     const renderEpisodes = () => {
       tabContainer.innerHTML = `
         <div class="ep-list-modern">
@@ -359,69 +384,104 @@ async function showDetails(id) {
       });
     };
 
+    // 3. Функция рендеринга Франшизы (Связанное)
     const renderRelated = () => {
-      if (!release.related || release.related.length === 0) {
-        tabContainer.innerHTML = `<div class="empty-msg">Связанных релизов не найдено</div>`;
+      const tabContainer = document.getElementById("tab-content-container");
+
+      // Согласно твоей схеме: release.related_franchise — это массив франшиз.
+      // Берем первую франшизу [0] и из нее достаем franchise_releases.
+      const franchiseArray = release.related_franchise;
+      const releases = franchiseArray?.[0]?.franchise_releases || [];
+
+      if (releases.length === 0) {
+        tabContainer.innerHTML = `<div style="padding:40px; color:#555; text-align:center;">Связанные релизы не найдены</div>`;
         return;
       }
+
       tabContainer.innerHTML = `
-        <div class="related-list-modern">
-          ${release.related
-            .map(
-              (r) => `
-            <div class="related-card" data-id="${r.id}">
-              <img src="https://anilibria.top${r.poster?.preview || ""}">
-              <div class="related-card-info">
-                <h4>${r.name?.main || "Без названия"}</h4>
-                <p>${r.type?.full_string || ""} • ${r.year || ""}</p>
-              </div>
-            </div>
-          `,
-            )
-            .join("")}
+        <div class="ep-list-modern">
+        ${releases
+          .map((item) => {
+            const r = item.release; // Достаем объект релиза
+            if (!r) return ""; // Пропускаем, если данных нет
+
+            const isCurrent = r.id == release.id;
+            const activeStyle = isCurrent
+              ? 'style="border-color: #e63946; opacity: 0.6; cursor: default;"'
+              : "";
+
+            // Теперь берем постер по правильному пути из схемы
+            const posterPath = r.poster?.preview || r.poster?.src || "";
+            const fullPosterUrl = `https://anilibria.top${posterPath}`;
+
+            return `
+                <div class="ep-card-modern" data-id="${r.id}" ${activeStyle}>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <img src="${fullPosterUrl}"
+                             style="width: 45px; height: 65px; object-fit: cover; border-radius: 6px;"
+                             onerror="this.src='https://www.anilibria.tv/img/no-poster.jpg'">
+                        <div>
+                            <div style="font-weight: bold; font-size: 14px; color: #eee;">${r.name?.main || "Без названия"}</div>
+                            <div style="font-size: 12px; color: #777;">${r.year || "—"} • ${r.type?.description || "—"}</div>
+                        </div>
+                    </div>
+                    ${isCurrent ? '<span style="font-size: 10px; color: #e63946;">ТЕКУЩИЙ</span>' : '<span class="ep-play-label">ПЕРЕЙТИ</span>'}
+                </div>
+            `;
+          })
+          .join("")}
         </div>
-      `;
-      tabContainer.querySelectorAll(".related-card").forEach((card) => {
-        card.onclick = () => showDetails(card.dataset.id);
+        `;
+
+      // Обработка кликов
+      tabContainer.querySelectorAll(".ep-card-modern").forEach((item) => {
+        item.onclick = () => {
+          const nextId = item.dataset.id;
+          if (nextId && nextId != release.id) {
+            showDetails(nextId);
+          }
+        };
       });
     };
+    // --- НАСТРОЙКА СОБЫТИЙ ---
 
-    // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
+    // Назад
+    document.getElementById("back-to-prev-new").onclick = () => {
+      details.style.display = "none";
+      document.getElementById(lastActiveScreen).style.display = "block";
+    };
 
-    // Кнопка назад
-    const backBtn = document.getElementById("back-to-prev-new");
-    if (backBtn) {
-      backBtn.onclick = () => {
-        details.style.display = "none";
-        document.getElementById(lastActiveScreen).style.display = "block";
+    // Смотреть (первая серия)
+    const watchBtn = document.getElementById("start-watch-main");
+    if (watchBtn && release.episodes.length > 0) {
+      watchBtn.onclick = () => {
+        const first = release.episodes[0];
+        openPlayer(first.id, `Серия ${first.ordinal} — ${release.name.main}`);
       };
     }
 
-    // Смотреть первую
-    const watchMain = document.getElementById("start-watch-main");
-    if (watchMain && release.episodes.length > 0) {
-      watchMain.onclick = () => {
-        const e = release.episodes[0];
-        openPlayer(e.id, `Серия ${e.ordinal} — ${release.name.main}`);
-      };
-    }
-
-    // Переключение табов
+    // Переключение табов (теперь обработчики вешаются правильно)
     content.querySelectorAll(".tab-btn").forEach((btn) => {
       btn.onclick = () => {
+        // Убираем активный класс у всех и даем нажатому
         content
           .querySelectorAll(".tab-btn")
           .forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
-        if (btn.dataset.tab === "episodes") renderEpisodes();
-        else renderRelated();
+
+        // Вызываем нужный рендер
+        if (btn.dataset.tab === "episodes") {
+          renderEpisodes();
+        } else {
+          renderRelated();
+        }
       };
     });
 
-    // Стартовый рендер
+    // Стартовый показ — эпизоды
     renderEpisodes();
   } catch (err) {
-    console.error(err);
+    console.error("Ошибка в showDetails:", err);
     content.innerHTML = `<div class="error">Ошибка загрузки: ${err}</div>`;
   }
 }

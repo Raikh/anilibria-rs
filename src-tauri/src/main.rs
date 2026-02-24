@@ -138,18 +138,35 @@ async fn get_full_release(
     state: tauri::State<'_, AppState>,
     id: String,
 ) -> Result<serde_json::Value, String> {
-    let url: String = format!("{}/anime/releases/{}", state.get_api_url(), id);
-    let response: reqwest::Response = state
-        .client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e: reqwest::Error| e.to_string())?;
+    let api_url = state.get_api_url();
 
-    response
-        .json()
-        .await
-        .map_err(|e: reqwest::Error| e.to_string())
+    // 1. Запрос основного релиза
+    let release_url = format!("{}/anime/releases/{}", api_url, id);
+    let release_resp = state.client.get(&release_url).send().await
+        .map_err(|e| e.to_string())?;
+    let mut release_json: serde_json::Value = release_resp.json().await
+        .map_err(|e| e.to_string())?;
+
+    // 2. Запрос франшизы (исправленный эндпоинт)
+    let franchise_url = format!("{}/anime/franchises/release/{}", api_url, id);
+    let franchise_resp = state.client.get(&franchise_url).send().await;
+
+    let mut franchise_data = serde_json::json!([]);
+
+    if let Ok(resp) = franchise_resp {
+        if let Ok(json) = resp.json::<serde_json::Value>().await {
+            // API Anilibria обычно возвращает объект, где список лежит в "releases"
+            // или массив объектов. Проверим структуру.
+            franchise_data = json;
+        }
+    }
+
+    // Добавляем во франшизу данные
+    if let Some(obj) = release_json.as_object_mut() {
+        obj.insert("related_franchise".to_string(), franchise_data);
+    }
+
+    Ok(release_json)
 }
 
 #[tauri::command]
