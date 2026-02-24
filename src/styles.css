@@ -1,6 +1,10 @@
 /* --- 1. Глобальные стили и Оболочка --- */
+html,
 body {
+  height: 100%; /* ГАРАНТИРУЕТ, что % будет работать во всем приложении */
+  width: 100%;
   margin: 0;
+  padding: 0;
   background: #0b0b0b;
   color: white;
   font-family:
@@ -8,19 +12,20 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
-  overflow: hidden; /* Отключаем скролл у body, чтобы работал внутренний вьюпорт */
+  overflow: hidden; /* Основной скролл только внутри вьюпорта */
 }
 
 #app-shell {
   display: flex;
-  flex-direction: column; /* Меню сверху, контент снизу */
-  width: 100vw;
-  height: 100vh;
+  flex-direction: column;
+  width: 100%;
+  height: 100%; /* Занимает доступное пространство окна, не заползая под таскбар */
+  box-sizing: border-box;
 }
 
 /* Область основного контента */
 #main-viewport {
-  flex: 1;
+  flex: 1; /* Забирает всё свободное место под навигацией */
   overflow-y: auto;
   position: relative;
   scroll-behavior: smooth;
@@ -39,7 +44,7 @@ body {
 }
 
 .container {
-  max-width: 1600px; /* Увеличено для широких экранов */
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 40px 60px 40px;
 }
@@ -50,14 +55,14 @@ body {
   height: 70px;
   background: #000;
   display: flex;
-  flex-direction: row; /* Элементы в ряд */
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   padding: 0 40px;
   border-bottom: 1px solid #1a1a1a;
   box-sizing: border-box;
   z-index: 100;
-  flex-shrink: 0; /* Чтобы меню не сжималось */
+  flex-shrink: 0;
 }
 
 .nav-links {
@@ -72,7 +77,7 @@ body {
   font-weight: bold;
   font-size: 14px;
   transition: 0.3s;
-  padding: 23px 0; /* Высота попадает в границы хедера */
+  padding: 23px 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -82,7 +87,6 @@ body {
 .nav-item:hover {
   color: #eee;
 }
-
 .nav-item.active {
   color: #fff;
   border-bottom: 3px solid #e63946;
@@ -94,7 +98,6 @@ body {
   gap: 20px;
 }
 
-/* Кнопка настроек в меню */
 .settings-icon-btn {
   background: transparent;
   border: none;
@@ -158,11 +161,11 @@ body {
   border-color: #e63946;
 }
 
-/* --- 4. Hero Слайдер (Кинематографичный) --- */
+/* --- 4. Hero Слайдер --- */
 .hero-section {
   position: relative;
   width: 100%;
-  height: 650px; /* Увеличенная высота */
+  height: 600px; /* Фиксированная высота для стабильности */
   background: #121212;
   overflow: hidden;
   margin-bottom: 50px;
@@ -212,7 +215,6 @@ body {
   margin: 0 0 20px 0;
   font-weight: 800;
   line-height: 1.05;
-  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
 
 .hero-info p {
@@ -269,7 +271,6 @@ body {
 .card:hover {
   transform: translateY(-10px);
   border-color: rgba(230, 57, 70, 0.4);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .card img {
@@ -281,22 +282,6 @@ body {
 .card-info {
   padding: 18px;
 }
-.card h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Горизонтальный список каталога */
-.catalog-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 
 .catalog-row {
   display: flex;
@@ -306,12 +291,10 @@ body {
   border-radius: 12px;
   cursor: pointer;
   transition: 0.2s;
-  border: 1px solid transparent;
 }
 
 .catalog-row:hover {
   background: #1a1a1a;
-  border-color: #333;
   transform: translateX(10px);
 }
 
@@ -320,19 +303,9 @@ body {
   height: 170px;
   object-fit: cover;
   border-radius: 8px;
-  flex-shrink: 0;
 }
 
-.tags span {
-  background: #333;
-  padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  color: #eee;
-  margin-right: 6px;
-}
-
-/* --- 6. Детали аниме --- */
+/* --- 6. Детали --- */
 .details-layout {
   display: flex;
   gap: 60px;
@@ -341,7 +314,6 @@ body {
 .details-sidebar img {
   width: 350px;
   border-radius: 15px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
 }
 
 .ep-btn,
@@ -352,37 +324,32 @@ body {
   padding: 12px 28px;
   border-radius: 10px;
   cursor: pointer;
-  transition: 0.2s;
   font-weight: 600;
 }
 .ep-btn:hover,
 .back-btn:hover {
   background: #e63946;
-  border-color: #e63946;
 }
 
-/* --- 7. Плеер и Модалки --- */
-/* --- 7. Видео плеер (FIX: Fullscreen Overlay) --- */
+/* --- 7. Плеер (Overlay) --- */
 #video-overlay {
-  position: fixed; /* Плеер всегда поверх всего */
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 99999; /* Максимальный приоритет */
+  width: 100%; /* Заменяем 100vw на 100% */
+  height: 100%; /* Заменяем 100vh на 100% */
+  z-index: 99999;
   background: #000;
-  display: none; /* Включается через JS */
+  display: none;
   flex-direction: column;
-  transition: cursor 0.3s ease;
 }
 
-/* Обертка для самого video-js, чтобы он не сжимался */
 .video-js {
   width: 100% !important;
   height: 100% !important;
 }
 
-/* Элементы управления HUD поверх видео */
+/* Элементы управления HUD */
 .player-hud {
   position: absolute;
   top: 0;
@@ -394,75 +361,51 @@ body {
   display: flex;
   align-items: center;
   gap: 20px;
-  pointer-events: none; /* Пропускает клики к видео */
-  transition: opacity 0.3s;
+  pointer-events: none;
+  box-sizing: border-box; /* Важно, чтобы паддинг не раздувал HUD */
 }
 
 .player-hud * {
-  pointer-events: auto; /* Но кнопки в HUD кликабельны */
+  pointer-events: auto;
 }
-
 .hud-hidden {
   opacity: 0;
   cursor: none !important;
 }
 
-/* --- Исправление иконки качества --- */
-
-/* Контейнер кнопки качества */
-.vjs-quality-menu-button {
-  cursor: pointer;
-}
-
-/* Назначение иконки (используем стандартный глиф VideoJS для настроек/качества) */
+/* Качество и Громкость */
 .vjs-quality-menu-button .vjs-icon-placeholder:before {
   font-family: VideoJS;
-  content: "\f110"; /* Код иконки 'шестеренка' или '\f114' для списков */
+  content: "\f110";
   font-size: 1.8em;
   line-height: 1.6;
 }
 
-/* Стили выпадающего меню качества */
 .vjs-menu-content {
   background-color: rgba(20, 20, 20, 0.9) !important;
   backdrop-filter: blur(10px);
   border-radius: 8px !important;
-  bottom: 1.5em !important;
 }
 
 .vjs-menu-item {
   text-transform: capitalize;
   padding: 10px !important;
-  transition: background 0.2s;
 }
 
 .vjs-menu-item.vjs-selected {
   background-color: #e63946 !important;
-  color: white !important;
 }
 
 .vjs-menu-item:not(.vjs-selected) {
   background-color: transparent !important;
 }
 
-.vjs-menu-item:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Убираем синюю или серую обводку фокуса, которая часто похожа на выделение */
 .vjs-menu-item:focus,
 .vjs-menu-item:active {
   outline: none !important;
-  box-shadow: none !important;
-  background-color: rgba(255, 255, 255, 0.1) !important; /* Легкий эффект при клике */
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.vjs-menu-item.vjs-selected {
-  background-color: #e63946 !important;
-  color: white !important;
-}
-
-/* --- Отображение громкости числом --- */
 .vjs-volume-level-number {
   display: flex;
   align-items: center;
@@ -472,19 +415,12 @@ body {
   color: #eee;
   padding: 0 5px;
   min-width: 40px;
-  pointer-events: none; /* Чтобы не мешало кликать на регулятор */
 }
 
-/* Настройка контейнера панели громкости, чтобы число влезло */
 .vjs-volume-panel {
   display: flex !important;
   align-items: center;
   width: auto !important;
-}
-
-/* Чтобы число было видно всегда, а не только при наведении */
-.video-js .vjs-volume-panel {
-  margin-right: 10px;
 }
 
 .modal {
@@ -506,31 +442,12 @@ body {
   border: 1px solid #333;
 }
 
-/* Скелетоны для загрузки */
-.skeleton-title {
-  width: 60%;
-  height: 40px;
-  background: #222;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  animation: pulse 1.5s infinite;
-}
-.skeleton-img {
-  width: 350px;
-  height: 500px;
-  background: #222;
-  border-radius: 15px;
-  animation: pulse 1.5s infinite;
-}
-
 @keyframes pulse {
-  0% {
+  0%,
+  100% {
     opacity: 0.5;
   }
   50% {
     opacity: 1;
-  }
-  100% {
-    opacity: 0.5;
   }
 }
