@@ -1,99 +1,115 @@
 <!doctype html>
 <html lang="ru">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Anilibria</title>
-</head>
-<body>
+  </head>
+  <body>
     <div id="app-shell">
-        <nav class="side-nav">
-            <div class="nav-links">
-                <div class="nav-item active" data-screen="home">
-                    <span class="nav-icon">▤</span> РЕЛИЗЫ
-                </div>
-                <div class="nav-item" data-screen="catalog" id="nav-catalog-btn">
-                    <span class="nav-icon">📁</span> КАТАЛОГ
-                </div>
-                <div class="nav-item" data-screen="favorites">
-                    <span class="nav-icon">★</span> ИЗБРАННОЕ
-                </div>
-            </div>
-
-            <div class="nav-footer">
-                <div class="nav-item" id="open-settings-btn" title="Настройки">
-                    <span class="nav-icon">⚙</span> НАСТРОЙКИ
-                </div>
-            </div>
-        </nav>
-
-        <div id="main-viewport">
-            <main id="catalog">
-                <div class="container">
-                    <header class="catalog-header">
-                        <div class="title-group">
-                            <h1>Релизы</h1>
-                            <span class="count-badge">Последние обновления</span>
-                        </div>
-                        <div class="header-line"></div>
-                    </header>
-                    <div id="hero-slider" class="hero-section">
-                        <div id="hero-content" class="hero-container"></div>
-                        <button class="slider-btn prev">←</button>
-                        <button class="slider-btn next">→</button>
-                    </div>
-                    <div id="anime-list" class="release-grid"></div>
-                </div>
-            </main>
-
-            <main id="catalog-screen" style="display: none">
-                <div class="container">
-                    <header class="catalog-header">
-                        <div class="title-group">
-                            <h1>Каталог</h1>
-                            <div class="search-box">
-                                <button id="clear-search-btn" class="clear-btn" style="display: none;">✕</button>
-                                <input type="text" id="catalog-search-input" placeholder="Поиск аниме..." />
-                            </div>
-                        </div>
-                    </header>
-
-                    <div id="search-results-container" class="catalog-list" style="display: none;"></div>
-
-                    <div id="infinite-scroll-wrapper">
-                        <div id="infinite-list" class="catalog-list"></div>
-                        <div id="loading-trigger" class="loading-spinner">Загрузка...</div>
-                    </div>
-                </div>
-            </main>
-
-            <div id="anime-details" style="display: none;">
-                <div class="container">
-                    <div id="details-content"></div>
-                </div>
-            </div>
+      <nav class="side-nav">
+        <div class="nav-links">
+          <div class="nav-item active" data-screen="home">
+            <span class="nav-icon">▤</span> РЕЛИЗЫ
+          </div>
+          <div class="nav-item" data-screen="catalog" id="nav-catalog-btn">
+            <span class="nav-icon">📁</span> КАТАЛОГ
+          </div>
+          <div class="nav-item" data-screen="favorites">
+            <span class="nav-icon">★</span> ИЗБРАННОЕ
+          </div>
         </div>
+
+        <div class="nav-footer">
+          <div class="nav-item" id="open-settings-btn" title="Настройки">
+            <span class="nav-icon">⚙</span> НАСТРОЙКИ
+          </div>
+        </div>
+      </nav>
+
+      <div id="main-viewport">
+        <main id="catalog">
+          <div class="container">
+            <header class="catalog-header">
+              <div class="title-group">
+                <h1>Релизы</h1>
+                <span class="count-badge">Последние обновления</span>
+              </div>
+              <div class="header-line"></div>
+            </header>
+            <div id="hero-slider" class="hero-section">
+              <div id="hero-content" class="hero-container"></div>
+              <button class="slider-btn prev">←</button>
+              <button class="slider-btn next">→</button>
+            </div>
+            <div id="anime-list" class="release-grid"></div>
+          </div>
+        </main>
+
+        <main id="catalog-screen" style="display: none">
+          <div class="container">
+            <header class="catalog-header">
+              <div class="title-group">
+                <h1>Каталог</h1>
+                <div class="search-box">
+                  <button
+                    id="clear-search-btn"
+                    class="clear-btn"
+                    style="display: none"
+                  >
+                    ✕
+                  </button>
+                  <input
+                    type="text"
+                    id="catalog-search-input"
+                    placeholder="Поиск аниме..."
+                  />
+                </div>
+              </div>
+            </header>
+
+            <div
+              id="search-results-container"
+              class="catalog-list"
+              style="display: none"
+            ></div>
+
+            <div id="infinite-scroll-wrapper">
+              <div id="infinite-list" class="catalog-list"></div>
+              <div id="loading-trigger" class="loading-spinner">
+                Загрузка...
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <div id="anime-details" style="display: none">
+          <div class="container">
+            <div id="details-content"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="video-overlay" class="player-fullscreen" style="display: none">
-        <div class="player-hud">
-            <button id="close-player">✕ Закрыть</button>
-            <span id="player-title"></span>
-        </div>
-        <video id="video-player" class="video-js vjs-default-skin"></video>
+      <div class="player-hud">
+        <button id="close-player">✕ Закрыть</button>
+        <span id="player-title"></span>
+      </div>
+      <video id="video-player" class="video-js vjs-default-skin"></video>
     </div>
 
     <div id="settings-modal" class="modal" style="display: none">
-        <div class="modal-content">
-            <h2>Настройки</h2>
-            <input type="text" id="api-url-input" />
-            <div class="modal-actions">
-                <button id="save-settings-confirm" class="ep-btn">Сохранить</button>
-                <button id="close-settings-btn" class="back-btn">Отмена</button>
-            </div>
+      <div class="modal-content">
+        <h2>Настройки</h2>
+        <input type="text" id="api-url-input" />
+        <div class="modal-actions">
+          <button id="save-settings-confirm" class="ep-btn">Сохранить</button>
+          <button id="close-settings-btn" class="back-btn">Отмена</button>
         </div>
+      </div>
     </div>
 
     <script type="module" src="/main.js"></script>
-</body>
+  </body>
 </html>

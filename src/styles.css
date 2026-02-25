@@ -143,13 +143,14 @@ body {
 .search-box {
   flex: 1;
   display: flex; /* Включаем flex для выравнивания в ряд */
-  max-width: 400px;
+  max-width: 500px;
   margin-left: auto;
   align-items: center;
   gap: 10px; /* Расстояние между кнопкой и инпутом */
 }
 
 #catalog-search-input {
+  flex: 1;
   width: 100%;
   background: #161616;
   border: 1px solid #333;
@@ -174,7 +175,7 @@ body {
   /* Увеличиваем размер */
   min-width: 40px;
   height: 40px;
-  padding: 0 12px;
+  padding: 0 20px;
 
   background: rgba(230, 57, 70, 0.1); /* Легкий красный фон */
   border: 1px solid rgba(230, 57, 70, 0.3);
