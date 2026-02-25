@@ -16,6 +16,7 @@ let volumeDisplay = null;
 
 // Элементы DOM
 const viewport = document.getElementById("main-viewport");
+const clearSearchBtn = document.getElementById("clear-search-btn");
 const searchInput = document.getElementById("catalog-search-input");
 const searchResults = document.getElementById("search-results-container");
 const infiniteWrapper = document.getElementById("infinite-scroll-wrapper");
@@ -96,19 +97,33 @@ if (!videojs.getComponent("QualityMenu")) {
 }
 
 // --- 2. Поиск ---
+function resetSearch() {
+  searchInput.value = ""; // Очищаем инпут
+  clearSearchBtn.style.display = "none"; // Скрываем кнопку сброса
+  searchResults.style.display = "none"; // Скрываем результаты поиска
+  searchResults.innerHTML = ""; // Очищаем контейнер результатов
+  infiniteWrapper.style.display = "block"; // Показываем основной каталог
+}
+
+clearSearchBtn.onclick = resetSearch;
+
 searchInput.addEventListener("input", (e) => {
   const query = e.target.value.trim();
+  clearSearchBtn.style.display = query.length > 0 ? "flex" : "none";
+
   clearTimeout(searchTimeout);
 
+  // Если запрос стерт
   if (query.length === 0) {
-    searchResults.style.display = "none";
-    infiniteWrapper.style.display = "block";
+    resetSearch();
     return;
   }
 
-  if (query.length < 4) return;
+  // Не ищем, если слишком коротко (по желанию)
+  if (query.length < 3) return;
 
   searchTimeout = setTimeout(async () => {
+    // Скрываем бесконечный список, показываем контейнер поиска
     infiniteWrapper.style.display = "none";
     searchResults.style.display = "flex";
     searchResults.innerHTML =
@@ -116,26 +131,32 @@ searchInput.addEventListener("input", (e) => {
 
     try {
       const results = await invoke("search_releases", { query });
+
       if (!results || results.length === 0) {
         searchResults.innerHTML =
           '<div class="count-badge">Ничего не найдено</div>';
         return;
       }
 
+      // Отрисовка результатов (используем те же классы, что в каталоге для единообразия)
       searchResults.innerHTML = results
         .map((a) => {
           const posterUrl =
             a.poster.preview || a.poster.thumbnail || a.poster.src;
           return `
-          <div class="catalog-row" data-id="${a.id}">
+            <div class="catalog-row" data-id="${a.id}">
             <img src="https://anilibria.top${posterUrl}" class="catalog-img">
             <div class="catalog-info">
-              <h3>${a.name.main}</h3>
-              <div class="tags">${a.genres?.map((g) => `<span>${g.name}</span>`).join("") || ""}</div>
-              <p class="desc-short">${a.description || ""}</p>
+                <h3>${a.name.main}</h3>
+
+                <div class="tags">
+                ${a.genres?.map((g) => `<span class="tag-badge">${g.name}</span>`).join("") || ""}
+                </div>
+
+                <p class="desc-short">${a.description || ""}</p>
             </div>
-          </div>
-        `;
+            </div>
+            `;
         })
         .join("");
     } catch (err) {
@@ -192,15 +213,17 @@ async function loadNextPage() {
       .map((a) => {
         const posterUrl = a.poster.preview || a.poster.thumbnail;
         return `
-            <div class="catalog-row" data-id="${a.id}">
-                <img src="https://anilibria.top${posterUrl}" class="catalog-img">
-                <div class="catalog-info">
-                    <div class="tags">${a.genres?.map((g) => `<span>${g.name}</span>`).join("") || ""}</div>
-                    <h3>${a.name.main}</h3>
-                    <p class="desc-short">${a.description || "..."}</p>
+        <div class="catalog-row" data-id="${a.id}">
+            <img src="https://anilibria.top${posterUrl}" class="catalog-img">
+            <div class="catalog-info">
+                <h3>${a.name.main}</h3>
+                <div class="tags">
+                    ${a.genres?.map((g) => `<span class="tag-badge">${g.name}</span>`).join("") || ""}
                 </div>
+                <p class="desc-short">${a.description || "..."}</p>
             </div>
-        `;
+        </div>
+    `;
       })
       .join("");
 
@@ -279,6 +302,7 @@ async function showDetails(id) {
   const details = document.getElementById("anime-details");
   const content = document.getElementById("details-content");
 
+  // Скрываем другие экраны
   document.getElementById("catalog").style.display = "none";
   document.getElementById("catalog-screen").style.display = "none";
   details.style.display = "block";
@@ -287,45 +311,178 @@ async function showDetails(id) {
   content.innerHTML = `<div class="loading-spinner">Загрузка релиза...</div>`;
 
   try {
+    // Получаем данные из Rust (включая related_franchise)
     const release = await invoke("get_full_release", { id: String(id) });
+
+    // 1. Формируем HTML структуру (Классы и ID синхронизированы)
     content.innerHTML = `
-      <button id="back-to-prev" class="back-btn">← Назад</button>
-      <div class="details-layout">
-          <div class="details-sidebar">
-              <img src="https://anilibria.top${release.poster.src}">
-          </div>
-          <div class="details-main">
-              <h1>${release.name.main}</h1>
-              <p class="description">${release.description}</p>
-              <div class="ep-list">
-                  ${release.episodes
-                    .map(
-                      (e) => `
-                      <button class="ep-btn" data-uuid="${e.id}" data-ord="${e.ordinal}">
-                          Серия ${e.ordinal}
-                      </button>
-                  `,
-                    )
-                    .join("")}
+      <div class="details-page-container">
+        <div class="release-hero">
+          <div class="hero-backdrop" style="background-image: url('https://anilibria.top${release.poster.src}')"></div>
+          <div class="hero-overlay"></div>
+          <div class="hero-content-wrapper">
+            <button id="back-to-prev-new" class="back-pill">← Назад</button>
+            <div class="release-main-info">
+              <img src="https://anilibria.top${release.poster.src}" class="release-poster-large">
+              <div class="release-text-block">
+                <h1>${release.name.main}</h1>
+                <div class="info-grid">
+                  <div class="info-item"><span>Тип:</span> ${release.type?.full_string || "ТВ"}</div>
+                  <div class="info-item"><span>Год:</span> ${release.year || "—"}</div>
+                  <div class="info-item"><span>Жанры:</span> ${release.genres?.map((g) => g.name).join(", ") || "—"}</div>
+                </div>
+                <div class="action-bar">
+                  <button class="play-btn-large" id="start-watch-main">Смотреть первую серию</button>
+                </div>
               </div>
+            </div>
           </div>
+        </div>
+
+        <div class="release-info-section">
+          <div class="description-block">
+            <h3>Описание</h3>
+            <p class="description-text">${release.description || "Нет описания"}</p>
+          </div>
+
+          <div class="tabs-wrapper">
+            <div class="details-tabs">
+              <button class="tab-btn active" data-tab="episodes">Эпизоды</button>
+              <button class="tab-btn" data-tab="related">Связанное</button>
+            </div>
+            <div id="tab-content-container"></div>
+          </div>
+        </div>
       </div>
     `;
 
-    document.getElementById("back-to-prev").onclick = () => {
+    // Ссылка на контейнер, куда будем рисовать серии или франшизу
+    const tabContainer = document.getElementById("tab-content-container");
+
+    // 2. Функция рендеринга Эпизодов
+    const renderEpisodes = () => {
+      tabContainer.innerHTML = `
+        <div class="ep-list-modern">
+          ${release.episodes
+            .map(
+              (e) => `
+            <div class="ep-card-modern" data-uuid="${e.id}" data-ord="${e.ordinal}">
+              <span>${e.ordinal} эпизод</span>
+              <span class="ep-play-label">СМОТРЕТЬ</span>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      `;
+      tabContainer.querySelectorAll(".ep-card-modern").forEach((card) => {
+        card.onclick = () =>
+          openPlayer(
+            card.dataset.uuid,
+            `Серия ${card.dataset.ord} — ${release.name.main}`,
+          );
+      });
+    };
+
+    // 3. Функция рендеринга Франшизы (Связанное)
+    const renderRelated = () => {
+      const tabContainer = document.getElementById("tab-content-container");
+
+      // Согласно твоей схеме: release.related_franchise — это массив франшиз.
+      // Берем первую франшизу [0] и из нее достаем franchise_releases.
+      const franchiseArray = release.related_franchise;
+      const releases = franchiseArray?.[0]?.franchise_releases || [];
+
+      if (releases.length === 0) {
+        tabContainer.innerHTML = `<div style="padding:40px; color:#555; text-align:center;">Связанные релизы не найдены</div>`;
+        return;
+      }
+
+      tabContainer.innerHTML = `
+        <div class="ep-list-modern">
+        ${releases
+          .map((item) => {
+            const r = item.release; // Достаем объект релиза
+            if (!r) return ""; // Пропускаем, если данных нет
+
+            const isCurrent = r.id == release.id;
+            const activeStyle = isCurrent
+              ? 'style="border-color: #e63946; opacity: 0.6; cursor: default;"'
+              : "";
+
+            // Теперь берем постер по правильному пути из схемы
+            const posterPath = r.poster?.preview || r.poster?.src || "";
+            const fullPosterUrl = `https://anilibria.top${posterPath}`;
+
+            return `
+                <div class="ep-card-modern" data-id="${r.id}" ${activeStyle}>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <img src="${fullPosterUrl}"
+                             style="width: 45px; height: 65px; object-fit: cover; border-radius: 6px;"
+                             onerror="this.src='https://www.anilibria.tv/img/no-poster.jpg'">
+                        <div>
+                            <div style="font-weight: bold; font-size: 14px; color: #eee;">${r.name?.main || "Без названия"}</div>
+                            <div style="font-size: 12px; color: #777;">${r.year || "—"} • ${r.type?.description || "—"}</div>
+                        </div>
+                    </div>
+                    ${isCurrent ? '<span style="font-size: 10px; color: #e63946;">ТЕКУЩИЙ</span>' : '<span class="ep-play-label">ПЕРЕЙТИ</span>'}
+                </div>
+            `;
+          })
+          .join("")}
+        </div>
+        `;
+
+      // Обработка кликов
+      tabContainer.querySelectorAll(".ep-card-modern").forEach((item) => {
+        item.onclick = () => {
+          const nextId = item.dataset.id;
+          if (nextId && nextId != release.id) {
+            showDetails(nextId);
+          }
+        };
+      });
+    };
+    // --- НАСТРОЙКА СОБЫТИЙ ---
+
+    // Назад
+    document.getElementById("back-to-prev-new").onclick = () => {
       details.style.display = "none";
       document.getElementById(lastActiveScreen).style.display = "block";
     };
 
-    content.querySelectorAll(".ep-btn").forEach((btn) => {
-      btn.onclick = () =>
-        openPlayer(
-          btn.dataset.uuid,
-          `Серия ${btn.dataset.ord} — ${release.name.main}`,
-        );
+    // Смотреть (первая серия)
+    const watchBtn = document.getElementById("start-watch-main");
+    if (watchBtn && release.episodes.length > 0) {
+      watchBtn.onclick = () => {
+        const first = release.episodes[0];
+        openPlayer(first.id, `Серия ${first.ordinal} — ${release.name.main}`);
+      };
+    }
+
+    // Переключение табов (теперь обработчики вешаются правильно)
+    content.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.onclick = () => {
+        // Убираем активный класс у всех и даем нажатому
+        content
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        // Вызываем нужный рендер
+        if (btn.dataset.tab === "episodes") {
+          renderEpisodes();
+        } else {
+          renderRelated();
+        }
+      };
     });
+
+    // Стартовый показ — эпизоды
+    renderEpisodes();
   } catch (err) {
-    content.innerHTML = `<div class="error">${err}</div>`;
+    console.error("Ошибка в showDetails:", err);
+    content.innerHTML = `<div class="error">Ошибка загрузки: ${err}</div>`;
   }
 }
 
@@ -390,17 +547,6 @@ async function openPlayer(uuid, title) {
       if (volumeDisplay)
         volumeDisplay.innerText = Math.round(player.volume() * 100) + "%";
     });
-
-    document.getElementById("close-player").onclick = async () => {
-      if (window.hls) {
-        window.hls.destroy();
-        window.hls = null;
-      }
-      player.pause();
-      await appWindow.setFullscreen(false);
-      overlay.style.display = "none";
-      shell.style.display = "flex";
-    };
 
     const showHud = () => {
       hud.classList.remove("hud-hidden");
@@ -467,6 +613,31 @@ async function openPlayer(uuid, title) {
           hls.recoverMediaError();
       }
     });
+  }
+
+  const closeBtn = document.getElementById("close-player");
+  if (closeBtn) {
+    closeBtn.onclick = async () => {
+      // 1. Убиваем HLS поток (обязательно перед паузой плеера)
+      if (window.hls) {
+        window.hls.detachMedia();
+        window.hls.destroy();
+        window.hls = null;
+      }
+
+      // 2. Останавливаем плеер и очищаем источник
+      if (player) {
+        player.pause();
+        player.src(""); // Очистка, чтобы видео не докачивалось в фоне
+      }
+
+      // 3. Возвращаем интерфейс
+      await appWindow.setFullscreen(false);
+      document.getElementById("video-overlay").style.display = "none";
+      document.getElementById("app-shell").style.display = "flex";
+
+      console.log("Плеер успешно закрыт");
+    };
   }
 
   player.ready(() => {
